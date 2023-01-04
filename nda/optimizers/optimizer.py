@@ -78,8 +78,30 @@ class Optimizer(object):
 
         return self.grad_h(w, i=i, j=j) + self.grad_g(w)
 
-    def hessian(self, *args, **kwargs):
-        return self.p.hessian(*args, **kwargs)
+    def hessian(self, w, i=None, j=None):
+        if w.ndim == 1:
+            if i is None and j is None:
+                self.n_grads += self.p.m_total  # Works for agents is list or integer
+            elif i is not None and j is None:
+                self.n_grads += self.p.m
+            elif j is not None:
+                if type(j) is int:
+                    j = [j]
+                self.n_grads += len(j)
+        elif w.ndim == 2:
+            if j is None:
+                self.n_grads += self.p.m_total  # Works for agents is list or integer
+            elif j is not None:
+                if type(j) is xp.ndarray:
+                    self.n_grads += j.size
+                elif type(j) is list:
+                    self.n_grads += sum([1 if type(j[i]) is int else len(j[i]) for i in range(self.p.n_agent)])
+                else:
+                    raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+        return self.p.hessian(w, i=i, j=j)
 
     def grad_h(self, w, i=None, j=None):
         '''Gradient wrapper. Provide logging function.'''
