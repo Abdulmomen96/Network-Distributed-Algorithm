@@ -231,3 +231,44 @@ class LogisticRegression(Problem):
         Y_hat[Y_hat > 0] = 1
         Y_hat[Y_hat <= 0] = 0
         return xp.mean(Y_hat == Y)
+
+    def hessian(self, w, i=None, j=None):
+        '''Hessian of h(x) at w. Depending on the shape of w and parameters i and j, this function behaves differently:
+        1. If w is a vector of shape (dim,)
+            1.1 If i is None and j is None
+                returns the full Hessian.
+            1.2 If i is not None and j is None
+                returns the Hessian at the i-th agent.
+            1.3 If i is None and j is not None
+                returns the i-th Hessian of all training data.
+            1.4 If i is not None and j is not None
+                returns the Hessian of the j-th data sample at the i-th agent.
+            Note i, j can be integers, lists or vectors.
+        2. If w is a matrix of shape (dim, n_agent)
+            2.1 if j is None
+                returns the Hessian of each parameter at the corresponding agent
+            2.2 if j is not None
+                returns the Hessian of each parameter of the j-th sample at the corresponding agent.
+            Note j can be lists of lists or vectors.
+        '''
+
+        if w.ndim == 1:
+            if type(j) is int:
+                j = [j]
+            if i is None and j is None:  # Return the full hessian
+
+                return np.matmul(self.X_train.T.dot(np.multiply(logit_1d(self.X_train, w), 1 - logit_1d(self.X_train, w)))
+                                 , self.X_train) / self.m_total + self.LAMBDA * np.eye(self.dim)
+            elif i is not None and j is None:
+                return np.matmul(self.X_train[i].T.dot(np.multiply(logit_1d(self.X_train[i], w), 1 - logit_1d(self.X_train[i], w)))
+                                 , self.X_train[i]) / self.m + self.LAMBDA * np.eye(self.dim)
+            elif i is None and j is not None:  # Return the full hessian
+                return np.matmul(self.X_train[j].T.dot(np.multiply(logit_1d(self.X_train[j], w), 1 - logit_1d(self.X_train[j], w)))
+                                 , self.X_train[i]) / len(j) + self.LAMBDA * np.eye(self.dim)
+            else:  # Return the hessian of sample j at machine i
+                return np.matmul(self.X_train[i][j].T.dot(np.multiply(logit_1d(self.X_train[i][j], w), 1 - logit_1d(self.X_train[i][j], w)))
+                                 , self.X_train[i][j]) / len(j) + self.LAMBDA * np.eye(self.dim)
+
+
+        else:
+            log.fatal('Parameter dimension should only be 1 for hessian')
